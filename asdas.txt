@@ -1,0 +1,104 @@
+TAD AirMiles():
+    (STRUCTS AUX):{
+
+    promocion ES struct<
+        factor:R
+        tope:R
+        gastadas:R
+    >
+
+
+    vuelo ES struct <
+        distancia : R
+        millasGanadas: R 
+        promocion: String 
+        factor: R
+    >
+
+    transaccion ES struct<
+        identificador_usuario2:Z 
+        monto: Z
+    >
+    }
+
+    usuario ES struct <
+        millas_disponibles:R
+        millasTotales :R
+        millasCanjeadas:R 
+        historial_vuelos: seq<vuelo>
+        historial_transacciones: seq <transaccion>
+    >
+
+
+TAD Airmiles {
+        obs usuarios : dicc <Id,usuario>
+        obs promociones : dicc <nombre_promocion,promocion>
+}
+crearSistema(): AirMiles()
+    req: true
+    asegura {promociones {"Nopromo": promocion}}
+    asegura {promocion = struct(1,0,0)} //(factor, tope, gastadas)
+    asegura {usuarios = {}}
+
+
+registrarUsuario(inout a: AirMiles, in id_usuario: Z): // ¿para cada proc que pasemos un id, hacemos un requiere para ver si id > 0?
+    requiere {id_usuario not in a.usuarios.keys()}
+    requiere {id_usuario > 0}
+    asegura {a.usuarios = setKey(id_usuario, [])}
+
+canjearMillas(in id_usuario: Z, in millas: R, inout a AirMiles):
+    requiere {a0 = a}
+    requiere {id_usuario in a.usuarios.keys()}
+    requiere {a.usuarios[id_usuario].millasDisponibles >= millas}
+    asegura {a.usuarios[id_usuario].millasTotales += millas}
+    asegura {a.usuarios[id_usuario].millasDisponibles += millas}
+    asegura {a.usuarios[id_usuario].millasCanjeadas += millas}
+
+transferirMillas(in Da: Z, in Recibe: Z, in millas: R, inout a AirMiles):
+    requiere: {a0 = a}
+    requiere: {Da != Recibe}
+    requiere: {Da in a0.usuarios.keys() and Recibe in a0.usuarios.keys()}
+    requiere {a0.usuarios[Da].millasDisponibles >= millas}
+    asegura {a = setKey(a0,Da,a0.usuario[Da].millas_diponibles += millas )}
+    asegura {todoLoDemasIgual( a0.usuario[Da], a.usuario[Da])}
+    asegura {a.usuarios[Da].millasDisponibles -= millas}
+    asegura {a.usuarios[Recibe].millasDisponibles += millas}
+    asegura {a.usuarios[Recibe].millasTotales += millas}
+    asegura {a.usuarios[Da].historial_transacciones = a0.usuarios[Da].historial_transacciones + (Recibe, -millas)}
+    asegura {a.usuarios[Recibe].historial_transacciones = (Da, millas)}
+
+consultarSaldo(in id_usuario: Z, in a AirMiles): R
+    requiere: {id_usuario in a.usuarios.keys()}
+    asegura: {res = a.usuarios[id_usuario].millasDisponibles}
+
+consultarCategoria (in id_usuario: Z, in a Airmiles): Categoria
+    requiere: {id_usuario in a.usuarios.keys()}
+    asegura: {esBronce -> res = categoria.bronce}
+    asegura: {esPlata-> res = categoria.plata}
+    asegura: {esOro -> res = categoria.oro}
+    asegura: {esPlatino -> res = categoria.platino}
+
+pred esBronce(millas: Z) {millas < 10000}
+pred esPlata(millas: Z) {millas >= 10000 and millas <= 49999}
+pred esOro(millas: Z) {millas >= 50000 and millas <= 999999}
+pred esPlatino(millas: Z) {millas >= 1000000}
+
+rankingMillas (in cant_ids: Z, in a AirMiles): seq(Id) // ¿Conj?
+    requiere: {cant_ids > 0}
+    asegura: {loongitudDeres = cant_ids y todoElementoQueestaEnResEsclavedeA.usuario}
+    asegura: {para todo i en longitud de res -> a.usuarios[res[i]].millasDisponibles >= a.usuarios[res[i+1]].millasDisponibles}
+
+resumenTransacciones(int id_usuario: Z, in a Airmiles): tuple(R,R,R)
+    requiere: {id_usuario in a.usuarios.keys()}
+    asegura: {res = (totalMillasPorViaje, a.usuario[id_usuario].millasCanjeadas,millasTransferidasGeneral(a.usuarios[id_usuario].historial_transacciones))}
+
+aux millasTransferidasGeneral(in t seq<transaccion>): R = sumatoria de i = 0 hasta i = |t|-1 de t[i].monto
+aux totalMillasPorViaje(in v seq<vuelos>): R = sumatoria de i = 0 hasta i = |v|-1 de v[i].millasGanadas
+
+pred todoLoDemasIgual (usuario1, usuario2){
+    usuario1.historial_transacciones =usuario2.historial_vuelos
+    .
+    .
+    .
+    . 
+}
