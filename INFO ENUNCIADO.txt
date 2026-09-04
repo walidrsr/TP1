@@ -1,0 +1,305 @@
+INFO ENUNCIADO
+
+Categorías de pasajeros:  // esto es x Km volado segun el enunciado es decir millas_ganadas x vuelo 
+Bronze  <10.000                          1*
+Plata   10.000<= millas <=49.999        1.5*
+Oro     50.000>=millas                  2*
+Platino => 1.000.000                    0*
+
+referidos -> 500 millas a ambos
+
+*debe coincidir el historial de millas enviadas y recibidas entre los usuarios que se transfieren millas.
+*no gastar millas que no poseen
+*Categorías se actualizen en funcion de millas voladas (kilometros?)
+
+almacenar:
+historial de transacciones de cada usuario (vuelos realizados, millas ganadas y canjeadas y transferencias)
+
+
+
+/////////////////// (TAD CON RENOMBRES) ////////////////////////////////////// !!!!!!!!!!!!!!!! (OJO CHEQUEARRR) !!!!!!!!!!!!!!!/////////////////////////////
+
+(Renombres de tipos):  {
+    Id ES Z
+    nombre_promocion ES String
+    Categoria ES enum {Bronce,Plata,Oro,Platino}
+
+    
+
+    (STRUCTS AUX):{
+
+    promocion ES struct<
+        factor:R
+        tope:R
+        gastadas:R
+    >
+
+
+    vuelo ES struct <
+        distancia : R
+        millasGanadas: R 
+        promocion: String 
+        factor: R
+    >
+
+    transaccion ES struct<
+        identificador_usuario2:Z 
+        monto: Z
+    >
+    }
+
+    usuario ES struct < 
+        millas_transferidas:R  --> ver si sacar, proque esta en historial_transacciones 
+        millas_disponibles:R
+        millasTotales :R
+        millasCanjeadas:R 
+        historial_vuelos: seq<vuelo>
+        historial_transacciones: seq <transaccion>
+    >
+}
+
+
+TAD Airmiles {
+        obs usuarios : dicc <Id,usuario>
+        obs promociones : dicc <nombre_promocion,promocion>
+}
+
+
+
+
+A = A0 
+A.PROMOCION = A0.PROMOCION
+
+////////////////////////////////////////////////////////////////////////// TAD ORIGINAL ////////////////////////////////////////////////////////
+TAD AirMiles {
+////OBSERVADORES
+obs promociones: dicc< nombre_promocion , (struct<factor : R , Tope: R, Gastadas: R>) > 
+
+obs usuarios: dicc 
+                CLAVE : < Id_usuarios: Z , 
+                   
+                VALOR : ( ///   ////
+                        struct< millasDisponibles: R, millasTotales: R , millasCanjeadas:R  > , 
+                        historial_vuelos: seq< struct<distancia : Z, millasGanadas: R, promocion: String, factor: R>,  /  falta categoriaaa????, en el proc consultarCategoria adem
+                        historial_transacciones:seq< struct<identificador_usuario2:Z, monto: Z>>> 
+                        ) 
+                    >  
+
+/////// seria esta la intencion ======>>>observador usuario: [identificador_usuario : (millas_disponibles, millas_totales, millas_canjeadas, historial_transacciones, historial_vuelos)]///// 
+
+1- consultar observadores (si lo dejamos en 2 o si dividimos historial de los datos de millas)
+2- consultar a que se refiere con vuelo, y si lo podemos plantear a cada vuelo  como un z y listo
+3- consultar bien la sintaxis de los struct
+4- Ambiguedades sintacticas ("Kilometros", "Millas Ganadas", etc.)
+5- Promociones activas: Definidas como dicc? o como Conj? 
+
+
+
+crearSistema {} : Airmiles
+- true
+
+- instancia vacía (no hay usuarios)
+- promoción por defecto (factor 1, nombre "NoPromo") ademas Tope y Gastadas se inicializa en 0
+- la clave 'nopromo'  se registra en el observador, factor = 1,gastadas = 0 y tope = 0.
+
+registrarUsuario {in identificador_usuario: Z , inout a: Airmiles} // creo que falta el valor inout a : Airmiles
+- usuario no esta en el sistema
+- id usuario > 0
+- a = A0
+
+- a.promociones = A0.promociones (el observador que no tocamos, se mantiene igual)
+- agrega un usuario, millas iniciadas en 0 e historial de vuelos y transacciones vacío.
+- el diccionario vacio se modifica al registrar usuario.
+
+
+registrarUsuarioConReferidor {in identificador_usuario: Z, in identificador_referente: Z, inout a: Airmiles}
+- usuario no esta en el sistema
+- id usuario > 0  e id_referente > 0 /// hace falta decir que son distintos??
+- metaVaariable a = Ao (se modifica)
+
+- identificador_usuario no esta y referenta si esta en el sistema 
+- id_usuario empiezan en 500millas
+- id_referente +500millas
+- +500 millas al referente
+
+acumularMillas {inout a : Airmiles, in identificador_usuario : Z, in distancia_volada : Z, in nombre_promocion : Z}: 
+
+- agrega millas a un usuario, actualiza la categoria si corresponde
+- se registra la transaccion en el historial del usuario (distancia volada, millas ganadas, nombre y factor de promocion)
+- controla el tope de la promocion (actualiza, y si es necesario elemina)
+
+canjearMillas {identificador_usuario :Z , millas_gastadas: Z, inout a: AirMiles}
+- descuenta millas disponibles del usuario
+- millas totales quedan igual
+- se registra la transaccion en el historial (cantidad de millas canjeadas)
+- millas canjeadas <= millas Disponibles
+
+transferirMillas {inout a: Airmiles ,in id_envia : Z, in millas_transferidas : Z, id_recibe :Z} 
+- transfiere las millas de un usuario a otro
+- ambos usuarios distintos
+- tienen que exisitir
+- el que envia, millasEnviadas <= millasDisponibles
+- el que recibe, aumenta sus millas disponibles y sus millas totales
+- se registra la transaccion en el historial de ambos usuario (millas transferidas, usuario destino, usuario origen)
+
+consultarSaldo{in a: AirMiles, in identificador_usuario: Z} --> Z
+- que identificador_usuario este en el sistema
+
+
+- devuelve las millas disponibles del usuario
+
+consultarCategoria {in a: AirMiles, in identificador_usuario :Z} --> string
+- devuelve la categoria del usuario
+
+rankingMillas: {in a: AirMiles, top_cuantos :Z} --> seq<Z>
+- devuelve los n usuarios con mas millas disponibles, de mayor a menor
+- devuelve todos si n es mayor a la cantidad de usuarios totales
+
+resumenTransacciones: {identificador_usuario (Z)} --> tupla<Z,Z,Z>
+- devuelve las millas ganadas por viajes, canjeadas, millas que transfirio y millas que le fueron transferidas
+
+iniciarPromocion {inout a: Airmiles, nombre_promocion: string, factor :R}
+- registra la promocio en el diccionario
+- que pasa con tope =0?????
+- factor de promocion se aplica a millas acumuladas por vuel mientras que la promo este activa
+
+iniciarPromocionConTope {nombre_promocion (string), factor (R), tope (Z)}
+- agrega una promocion activa
+- el tope indica hasta cuantas millas se pueden ganar con ella
+// El sistema debe llevar la cuenta de cuantas millas se han acumulado bajo cada promocion con tope.
+// El sistema debe llevar la cuenta  de cu´antas millas se han acumulado bajo cada promoci´on con tope
+
+elQueTieneMasMillas {in a : Airmiles} --> Z
+- devuelve el usuario que tiene mas millas
+
+elMasCanjeador {in a : Airmiles} --> Z
+- devuelve el usuario que ha usado mas millas
+
+paresTransferidosExclusivos {in a : Airmiles} --> seq<tupla<Z,Z>>
+- devuelve todos los pares de usuarios que se transfirieron entre si sin involucrar a nadie mas (y si solo hubo una transferencia?)
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//abreviacion
+nombre_promocion : String, factor : R , Tope: R, Gastadas: R es PROMO
+
+//defino observador
+obs promociones dicc< nombre_promocion , struc<factor : R , Tope: R, Gastadas: R>>
+
+iniciarPromocion: (inout promociones : conj<struc<PROMO>> , in nombre_promocion: String, in factor: R)
+{
+    requiere {noEsta(promociones, nombre_promocion)}
+    requiere {factor >= 1}
+    requiere {promociones = PROMOCIONES0}
+    asegura {}
+}
+
+pred noEsta (promociones : conj<struc<PROMO>>, nueva_promo : String)
+{
+    (Vp : struct<PROMO>) p.nombre_promocion != nueva_promo
+}
+
+
+iniciarPromocionConTope {nombre_promocion (string), factor (R), tope (Z)}
+- agrega una promocion activa
+- el tope indica hasta cuantas millas se pueden ganar con ella
+
+////////////////////////////////////////////////////////////////////////////////////////////
+promociones dicc< nombre_promocion , struc<factor : R , Tope: R, Gastadas: R>> ES info_promo
+
+obs promociones dicc< nombre_promocion , struc<factor : R , Tope: R, Gastadas: R>>
+
+
+
+proc finalizarPromocion (inout promocion : info_promo  , in nombre_promocion: String)
+{
+    requiere {nombre_promocion != "NoPromo"}
+    requiere {nombre_promocion E promocion.claves}
+    requiere {promocion = PROMOCIONES0}
+
+    asegura  {promocion = delKey(PROMOCIONES0, nombre_promocion)}
+}
+
+
+elQueTieneMasMillas {} --> Z
+- devuelve el usuario que tiene mas millas
+
+elMasCanjeador {} --> Z
+- devuelve el usuario que ha usado mas millas
+
+paresTransferidosExclusivos {} --> seq<tupla<Z,Z>>
+- devuelve todos los pares de usuarios que se transfirieron entre si sin involucrar a nadie mas (y si solo hubo una transferencia?)
+
+
+
+
+
+
+
+
+
+
+lista_usuarios dicc< Z , tupla< string , Z , Z , Z , seq< tupla< Z , Z>>>> 
+
+
+
+historial_transacciones seq< tupla<Z, Z>> --> ((identificador_usuario2, monto),...)
+historial_vuelos        seq< tupla<Z, Z, String, Z> --> ((distancia_volada, millas_ganadas, nombre_promocion, factor),...)
+
+lista_usuarios
+    [
+        key identificador_usuario : Z ,
+
+        value 
+        (
+            nombre             : string
+            millas_disponibles : R
+            millas_totales     : R
+            millas_canjeadas   : R
+
+            historial_transacciones : 
+            (
+                identificador_usuario2 : Z
+                monto                  : R
+            )
+
+            historial_vuelos        :
+            (
+                distancia_volada       : Z
+                millas_ganadas         : R
+                nombre_promocion       : string
+                factor                 : R
+            )
+        )
+    ]
+
+
+
+
+Categorías de pasajeros:  // esto es x Km volado segun el enunciado es decir millas_ganadas x vuelo 
+Bronze  <10.000                   1*
+Plata   10.000< millas <49.999    1.5*
+Oro     49.999< millas < 100.000  2*
+Platino >100.000                  0*
+
+pred estaEnRangoDeCategoria (m:millas){ 10000<m<49.999 o 49.999<m<100.000 o m>100.000 }

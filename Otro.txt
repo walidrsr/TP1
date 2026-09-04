@@ -1,0 +1,54 @@
+/////////////////// (TAD CON RENOMBRES) ////////////////////////////////////// !!!!!!!!!!!!!!!! (OJO CHEQUEARRR) !!!!!!!!!!!!!!!/////////////////////////////
+
+(Renombres de tipos):
+Id ES Z
+nombre_promocion ES String
+Categoria ES enum {Bronce,Plata,Oro,Platino} // ver si despues se utiliza o no, o se agrega en un observador
+
+
+(STRUCTS AUX):{
+
+    promocion ES struct<
+        factor:R
+        tope:R
+        gastadas:R
+    >
+
+
+    vuelo ES struct<distancia : Z, millasGanadas: R, promocion: String, factor: R>
+    transaccion ES struct<identificador_usuario2:Z, monto: Z>
+
+
+    usuario ES struct <
+        millas_disponibles:R
+        millasTotales :R
+        millasCanjeadas:R ///----> PORQUE NECESITAMOS ESTO??? 
+        historial_vuelos: seq<vuelo>
+        historial_transacciones: seq <transaccion>
+    >
+}
+
+TAD Airmiles {
+        obs usuarios : dicc <Id,usuario>
+        obs promociones : dicc <nombre_promocion,promocion>
+}
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////// TAD ORIGINAL ////////////////////////////////////////////////////////
+TAD AirMiles {
+////OBSERVADORES
+obs promociones: dicc< nombre_promocion , (struct<factor : R , Tope: R, Gastadas: R>) > 
+
+obs usuarios: dicc 
+                CLAVE : < Id_usuarios: Z , 
+                   
+                VALOR : ( ///   ////
+                        struct< millasDisponibles: R, millasTotales: R , millasCanjeadas:R  > , 
+                        historial_vuelos: seq< struc<distancia : Z, millasGanadas: R, promocion: String, factor: R>,  /  falta categoriaaa????, en el proc consultarCategoria adem
+                        historial_transacciones:seq< struc<identificador_usuario2:Z, monto: Z>>> 
+                        ) 
+                    >  
