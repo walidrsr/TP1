@@ -23,8 +23,6 @@ TAD AirMiles {
     >
 
 
-
-
     usuario ES struct <
         millasTotales: R
         millasDisponibles: R
@@ -46,61 +44,70 @@ TAD AirMiles {
     crearSistema(): AirMiles // 
         requiere: {true}
         asegura: {res.usuarios = {}}
-        asegura: {res.promocion = setKey(res.promocion,'NoPromo', (1,0,0) )} // (factor, tope, gastadas) --> ¡¡¡¡¡¡¡ chequear si esta bien !!!!
+        asegura: {res.promociones = setKey(res.promociones,'NoPromo', (1,0,0) )} // (factor, tope, gastadas)
         
 
-
+    //listo
     registrarUsuario(inout a: AirMiles, in id_usuario: Z): // noo, solo en este proc y en el regristrarUsuarioConReferidor
         requiere: {a0 = a}
-        requiere: {id_usuario not in claves(a0.usuarios)}
-        requiere: {id_usuario > 0} / porque estricto?
-        asegura: {a = setKey (a0.usuarios, id_usuario,(0,0,0,<>,<>))  }        // (totales,disp,canjeadas,histvuelos,histTransacc)                                                                                  
+        requiere: {not estaRegistrado(a.usuarios, id_usuario)}
+        requiere: {id_usuario > 0} 
+        asegura:  {a.usuarios = setKey (a0.usuarios, id_usuario,(0,0,0,<>,<>))  }   
+        asegura:  {a.promociones = a0.promociones}       // (totales,disp,canjeadas,histvuelos,histTransacc)                                                                                  
 
+
+    //faltaArreglarCategoría
     regristrarUsuarioConReferidor(inout a: AirMiles, in nuevo_usuario: Z, in referidor: Z)
-        requiere: {a0 = a}
-        requiere: {nuevo_usuario not in claves(a0.usuarios) and referidor in claves(a0.usuarios)}
-        requiere: {nuevo_usuario > 0 and referidor > 0}     
-        asegura: {a = setKey(a0.usuarios, referidor, usuario.millasTotales + 500 and usuario.millasDisponibles + 500)}
-        asegura: {a = setKey(a0.usuarios, referidor, (a0.usuario.referidor.millasTotales+500, a0.usuario[referidor].millasDisponibles+500, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].istorialTransacciones))}
-        asegura: {a = setKey(a0.usuarios, nuevo_usuario, usuario.millasTotales = 500 and usuario.millasDisponibles = 500 and usuario.millasCanjeadas = 0 and usuario.historialVuelos = () and usuario.historialTransacciones = ())}
+        requiere: {a0 = a, a1 = a}
+        requiere: {(not estaRegistrado(a.usuarios, nuevo_usuario) and estaRegistrado(a.usuarios, referidor))}
+        requiere: {nuevo_usuario > 0}     
+        asegura:  {          a0.usuarios[referidor] es platino          ->L a.usuarios = setKey(a0.usuarios, referidor, (a0.usuario[referidor].millasTotales, a0.usuario[referidor].millasDisponibles + 500, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].historialTransacciones))  y luego a1 = a}
+        asegura:  {     not  a0.usuarios[referidor] es platino          ->L a.usuarios = setKey(a0.usuarios, referidor, (a0.usuario[referidor].millasTotales + 500, a0.usuario[referidor].millasDisponibles + 500, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].historialTransacciones)) y luego a1 = a}
+        asegura:  {a.usuarios = setKey(a1.usuarios, nuevo_usuario, usuario.millasTotales = 500 and usuario.millasDisponibles = 500 and usuario.millasCanjeadas = 0 and usuario.historialVuelos = () and usuario.historialTransacciones = ())}
+        asegura:  {a.promociones = a0.promociones}   
+
+
+
 
     acumularMillas(inout a: AirMiles, in id_usuario: Z, in distancia: R, in nombrePromo: String)
         requiere: {a0 = a}
-        requiere: {id_usuario in claves(a0.usuarios)}
+        requiere: {estaRegistrado(a.usuarios, id_usuario)}
         requiere: {distancia > 0}
-        requiere: {nombrePromo in claves(a0.promociones) and (nombrePromo != "NoPromo" -> millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo) <= a0.promociones[nombrePromo].tope)} // aca chequeo que no se pase del tope cuando es != NoPromo
-        asegura: {a = setKey(a0.usuarios, id_usuario, usuario.millasDisponibles + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo))}
-        asegura: {a = setKey(a0.usuarios, id_usuario, usuario.millasTotales + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo))}
-        asegura: {a = setKey(a0.usuarios, id_usuario, usuario.historialVuelos + (distancia, id_usuario, millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo), nombrePromo, a0.promociones[nombrePromo].factor))}
-        asegura: {a = setKey(a0.promociones, nombrePromo, gastadas + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo))}
+        requiere: {nombrePromo in claves(a0.promociones) and (a0.promociones.tope > 0 ->L millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo) < a0.promociones[nombrePromo].tope)} // aca chequeo que no se pase del tope cuando es != NoPromo
+        //arreglar asegura: {a.usuarios = setKey(a0.usuarios, id_usuario, (usuario.millasDisponibles + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo),usuario.millasTotales + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo),usuario.historialVuelos ++ <(distancia, id_usuario, millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo))>, nombrePromo, a0.promociones[nombrePromo].factor))}
+        asegura: {a.promociones = ifThenElse(a0.promociones.tope = a0.promociones.gastadas + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo), delKey(a0.promociones,nombrePromo), a.promociones = setKey(a0.promociones, nombrePromo, gastadas + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo)))}
+    
+    //faltaArreglarCategoría
+    // aux millasGanadasEnVuelo(a: AirMiles, id_usuario: Z, distancia: R, nombrePromo: String): R = a0.categoria{consultarCategoria(id_usuario,a)} * distancia * a.promociones[nombrePromo].factor
 
-    aux millasGanadasEnVuelo(a: AirMiles, id_usuario: Z, distancia: R, nombrePromo: String): R = a0.categoria{consultarCategoria(id_usuario,a)} * distancia * a.promociones[nombrePromo].factor
-
-    canjearMillas(in id_usuario: Z, in millas: R, inout a AirMiles): // chequear si está bien
+    //listo
+    canjearMillas(inout a: AirMiles, in id_usuario: Z, in millas: R): // chequear si está bien
         requiere: {a0 = a}
-        requiere: {id_usuario in claves(a.usuarios)}
+        requiere: {estaRegistrado(a.usuarios, id_usuario)}
         requiere: {a.usuarios[id_usuario].millasDisponibles >= millas}
-        asegura: {a = setKey(a0.usuarios, id_usuario, usuario.millasDisponibles - millas)}
-        asegura: {a = setKey(a0.usuarios, id_usuario, usuario.millasCanjeadas + millas)}
+        asegura:  {a.usuarios = setKey(a0.usuarios, id_usuario, (a0.usuario[id_usuario].totales, a0.usuario[id_usuario].millasDisponibles - millas, a0.usuario[id_usuario].millasCanjeadas + millas, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].historialTransacciones))}
+        asegura:  {a.promociones = a0.promociones} 
 
-
-    transferirMillas(in Da: Z, in Recibe: Z, in millas: R, inout a AirMiles): // chequear si está bien
-        requiere: {a0 = a}
+    //categoria,metavariable en asegura?
+    transferirMillas(inout a: AirMiles, in Da: Z, in Recibe: Z, in millas: R): // chequear si está bien
+        requiere: {a0 = a, a1 = a}
         requiere: {Da != Recibe}
-        requiere: {Da in claves(a0.usuarios) and Recibe in claves(a0.usuarios)}
+        requiere: {estaRegistrado(a.usuarios, Da) and estaRegistrado(a.usuarios, Recibe)}
         requiere {a0.usuarios[Da].millasDisponibles >= millas}
-        asegura: {a = setKey(a0.usuarios, Da, usuario.millasDisponibles - millas)}
-        asegura: {a = setKey(a0.usuarios, Recibe, usuario.millasDisponibles + millas)}
-        asegura: {a = setKey(a0.usuarios, Recibe, usuario.millasTotales + millas)}
-        asegura: {a = setKey(a0.usuarios, Da, usuario.historial_transacciones + (Recibe, -millas))}
-        asegura: {a = setKey(a0.usuarios, Recibe, usuario.historial_transacciones + (Da, millas))}
+        asegura: {a = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>)) y luego a1 = a}
+        //asegura: {a = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>))}
+        asegura: {a.promociones = a0.promociones} 
 
-    consultarSaldo(in id_usuario: Z, in a AirMiles): R
-        requiere: {id_usuario in claves(a.usuarios)}
+
+
+
+    //listo
+    consultarSaldo(in a: AirMiles, in id_usuario: Z): R
+        requiere: {estaRegistrado(a.usuarios, Z)}
         asegura: {res = a.usuarios[id_usuario].millasDisponibles}
 
-    consultarCategoria (in id_usuario: Z, in a AirMiles): Categoria
-        requiere: {id_usuario in claves(a.usuarios)}
+    consultarCategoria (in a: AirMiles, in id_usuario: Z): Categoria
+        requiere: {estaRegistrado(a.usuarios, id_usuario)}
         asegura: {esBronce(a.usuarios[id_usuario].millasTotales) -> res = Categoria.Bronce}
         asegura: {esPlata(a.usuarios[id_usuario].millasTotales) -> res = Categoria.Plata}
         asegura: {esOro(a.usuarios[id_usuario].millasTotales) -> res = Categoria.Oro} 
@@ -111,51 +118,65 @@ TAD AirMiles {
     pred esOro(millas: Z) {millas >= 50000 and millas <= 999999}
     pred esPlatino(millas: Z) {millas >= 1000000}
 
-    rankingMillas (in cant_ids: Z, in a AirMiles): seq<Id> // problema con rango de i
+    //listo
+    rankingMillas (in a: AirMiles, in cant_ids: Z): seq<Id> // problema con rango de i
         requiere: {cant_ids > 0}
-        asegura: {|res| = cant_ids y PerteneceSeq(res,claves(a.usuario))}
+        asegura: {ifThenElse(Z > |a.usuarios|, |res| = |a.usuarios|, |res| = cant_ids) y PerteneceSeq(res,claves(a.usuario)) }
         asegura: {para todo 0 <= i < |res|-1 ->luego a.usuarios[res[i]].millasDisponibles >= a.usuarios[res[i+1]].millasDisponibles}
+        asegura: {(para todo i : Id) i E a.usuarios Y i !E res ->L res[|res|-1] > a.usuarios[i]} //se fija que sean los mejores
+
 
     pred PerteneceSeq(s: seq<Id>, keys: seq<Id>) {para todo 0 <= i < |s| ->luego s[i] E keys} // E = Pertenece
 
-    resumenTransacciones(int id_usuario: Z, in a AirMiles): tuple(R,R,R)
-        requiere: {id_usuario in claves(a.usuarios)}
-        asegura: {res = (totalMillasPorViaje, a.usuario[id_usuario].millasCanjeadas,millasTransferidasGeneral(a.usuarios[id_usuario].historial_transacciones))}
+    resumenTransacciones(in a: AirMiles, int id_usuario: Z): tuple(R,R,R)
+        requiere: {estaRegistrado(a.usuarios, id_usuario)}
+        asegura: {res = (totalMillasPorViaje(a.usuario[id_usuario].historialVuelos), a.usuario[id_usuario].millasCanjeadas,millasTransferidasGeneral(a.usuarios[id_usuario].historial_transacciones))}
 
     aux millasTransferidasGeneral(in t seq<transaccion>): R = sumatoria de i = 0 hasta i = |t|-1 de t[i].monto
     aux totalMillasPorViaje(in v seq<vuelos>): R = sumatoria de i = 0 hasta i = |v|-1 de v[i].millasGanadas
+
 
     iniciarPromocion(inout a: AirMiles, in nombre: String, in factor: R):
         requiere: {a0 = a}
         requiere: {factor >= 1}
         requiere: {nombre not in claves(a0.promociones)}
-        asegura: {a = setKey(a0.promociones, nombre, (factor,0,0))}
+        asegura:  {a.promociones = setKey(a0.promociones, nombre, (factor,0,0))}
+        asegura:  {a.usuarios = a0.usuarios}
 
     iniciarPromocionConTope(inout a: AirMiles, in nombre: String, in factor: R, in tope: R):
         requiere: {a0 = a}
         requiere: {factor >= 1}
+        requiere: {tope > 0}
         requiere: {nombre not in claves(a0.promociones)}
-        asegura: {a = setKey(a0.promociones, nombre, (factor,tope,0))}
+        asegura:  {a.promociones = setKey(a0.promociones, nombre, (factor,tope,0))}
+        asegura:  {a.usuarios = a0.usuarios}
 
-    finalizarPromocion(in nombre: String, inout a: AirMiles):
+    finalizarPromocion(inout a: AirMiles, in nombre: String):
         requiere: {a0 = a}
         requiere: {nombre in claves(a0.promociones) and nombre != "NoPromo"}
-        asegura: {nombre not in claves(a0.promociones)}
+        asegura:  {a.promociones = delKey(a0,nombre)}
+        asegura:  {a.usuarios = a0.usuarios}
 
     elQueTieneMasMillas(in a: AirMiles): Id
         requiere: {|a.usuarios| > 0}
-        asegura: {para toda key in claves(a.usuarios) ->luego a.usuarios[res].millasTotales >= a.usuarios[key].millasTotales}
+        asegura:  {(para toda key de tipo id), key in claves(a.usuarios) ->luego a.usuarios[res].millasTotales >= a.usuarios[key].millasTotales}
 
     elMasCanjeador(in a: AirMiles): Id
         requiere: {|a.usuarios| > 0}
-        asegura: {para toda key in claves(a.usuarios) ->luego (a.usuarios[res].millasTotales - a.usuarios[res].millasDisponibles) >= (a.usuarios[key].millasTotales - a.usuarios[key].millasDisponibles)}
+        asegura: {(para toda key de tipo id), key in claves(a.usuarios) ->luego (a.usuarios[res].millasCanjeadas + cantidadMillasDadas(a.usuarios[res].historial_transacciones)) >= (a.usuarios[key].millasCanjeadas + cantidadMillasDadas(a.usuarios[key].historial_transacciones))}
+
+    aux cantidadMillasDadas(in transferencias: seq<transaccion>) : R = -1* (sumatoria de i = 0 hasta i = |v|-1 ifThenElse(transferencias[i].monto > 0,0,transferencias[i].monto))
+    
+    
 
     paresTransferidoresExclusivos(in a: AirMiles): seq<tuple(Id,Id)>
-        requiere: {}
+        requiere: {true}
         asegura: {para todo 0 <= i < |res| ->luego sonTransferidoresExclusivos(res[i][0],res[i][1])}
 
     pred sonTransferidoresExclusivos(id1: Id, id2: Id, a: Airmiles) // chequear si está bien
         para toda transferencia in a.usuarios[id1].historial_transacciones -> transferencia[0] == id2
         para toda transferencia in a.usuarios[id2].historial_transacciones -> transferencia[0] == id1
+
+    pred estaRegistrado(usuariosRegistrados: dicc<Id,usuario> , id: Id) {id in claves(usuariosRegistrados.usuarios)}
 
 }
