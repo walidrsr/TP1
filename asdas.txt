@@ -183,7 +183,7 @@ TAD AirMiles {
     pred transferenciasExclusivas(a: AirMiles, s: seq<struct(id1:Z,id2:Z)>){
         (v i : z)(0<= i < |s| ->l (Existe j:z)(0<=j < |a.usuarios[s[i].id1].historialTransacciones| yluego ( a.usuarios[s[i].id1].historialTransacciones[j].identificador_usuario2=s[i].id2))
         o                                                                                               
-        (v i : z)(0<= i < |s| ->l (Existe j:z)(0<=j < |a.usuarios[s[i].id2].historialTransacciones| yluego ( a.usuarios[s[i].id1].historialTransacciones[j].identificador_usuario2=s[i].id1))
+        (v i : z)(0<= i < |s| ->l (Existe j:z)(0<=j < |a.usuarios[s[i].id2].historialTransacciones| yluego ( a.usuarios[s[i].id2].historialTransacciones[j].identificador_usuario2=s[i].id1))
     }
                                                                                                         
 }
