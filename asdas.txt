@@ -171,12 +171,22 @@ TAD AirMiles {
 
     paresTransferidoresExclusivos(in a: AirMiles): seq<tuple(Id,Id)>
         requiere: {true}
-        asegura: {para todo 0 <= i < |res| ->luego sonTransferidoresExclusivos(res[i][0],res[i][1])}
+        asegura: {NoHayTuplasRepetidas(res) y transferenciasExclusivas(a.usuarios,res) y estaRegistrado(a.usuarios,res) }
+    
+    pred estaRegistrado (usuario: dicc <Id,usuario> , ids:seq<struct(id1:Z,id2:Z)>): {
+        (v i : z)(0<=i|ids| ->l  estaRegistrado(usuario, ids[i].id1) y estaRegistrado(usuario,ids[i].id2) )
+    }
 
-    pred sonTransferidoresExclusivos(id1: Id, id2: Id, a: Airmiles) // chequear si está bien
-        para toda transferencia in a.usuarios[id1].historial_transacciones -> transferencia[0] == id2
-        para toda transferencia in a.usuarios[id2].historial_transacciones -> transferencia[0] == id1
+    pred NoHayTuplasRepetidas(s:seq<struct(id1:Z,id2:Z)>){
+        (vi:z)(0<=i<|s| ->luego (Existe j:z)(0<=j<|s| yluego (i.id1=j.id1 o i.id1=j.id2p i.id2=j.id1 o i.id2=j.id2 ) )
 
-    pred estaRegistrado(usuariosRegistrados: dicc<Id,usuario> , id: Id) {id in claves(usuariosRegistrados.usuarios)}
+        //noSe //siAgregarAlgoMAs
+    }
+
+    pred transferenciasExclusivas(usuario: dicc <Id,usuario>, s: seq<struct(id1:Z,id2:Z)>){
+        (v i : z)(0<= i < |s| ->l (Existe j:z)(0<=j < |usuario[i.id1].historialTransacciones| yluego ( j.identificador_usuario2=i.id2))
+        o
+        (v i : z)(0<= i < |s| ->l (Existe j:z)(0<=j < |usuario[i.id2].historialTransacciones| yluego ( j.identificador_usuario2=i.id1))
+    }
 
 }
