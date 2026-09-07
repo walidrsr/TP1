@@ -171,19 +171,19 @@ TAD AirMiles {
     
 
     
-    pred estaRegistrado (usuario: dicc <Id,usuario> , ids:seq<struct(id1:Z,id2:Z)>): {
-        (v i : z)(0<=i|ids| ->l  estaRegistrado(usuario, ids[i].id1) y estaRegistrado(usuario,ids[i].id2) )
+    pred estaRegistrado (a : AirMiles , ids:seq<struct(id1:Z,id2:Z)>): {
+        (v i : z)(0<=i|ids| ->l  estaRegistrado(a.usuarios, ids[i].id1) y (estaRegistrado(a.usuario,ids[i].id2)) y (ids[i].id1 != ids[i].id2)   )
     }
 
     pred NoHayTuplasRepetidas(s:seq<struct(id1:Z,id2:Z)>){
-        (vi:z)(0<=i<|s| ->luego not (Existe j:z)(0<=j<|s| y j/=i ->L (i.id1=j.id1 o i.id1 = j.id2 Y i.id2=j.id1 o i.id2=j.id2) )
+        (vi:z)(0<=i<|s| ->luego not (Existe j:z)(0<=j<|s| y j/=i ->L (s[i].id1=s[j].id1 o s[i].id1 = s[j].id2 Y s[i].id2=s[j].id1 o s[i].id2=s[j].id2) )
 
     }
 
-    pred transferenciasExclusivas(usuario: dicc <Id,usuario>, s: seq<struct(id1:Z,id2:Z)>){
-        (v i : z)(0<= i < |s| ->l (Existe j:z)(0<=j < |usuario[i.id1].historialTransacciones| yluego ( j.identificador_usuario2=i.id2))
-        o
-        (v i : z)(0<= i < |s| ->l (Existe j:z)(0<=j < |usuario[i.id2].historialTransacciones| yluego ( j.identificador_usuario2=i.id1))
+    pred transferenciasExclusivas(a: AirMiles, s: seq<struct(id1:Z,id2:Z)>){
+        (v i : z)(0<= i < |s| ->l (Existe j:z)(0<=j < |a.usuarios[s[i].id1].historialTransacciones| yluego ( a.usuarios[s[i].id1].historialTransacciones[j].identificador_usuario2=s[i].id2))
+        o                                                                                               
+        (v i : z)(0<= i < |s| ->l (Existe j:z)(0<=j < |a.usuarios[s[i].id2].historialTransacciones| yluego ( a.usuarios[s[i].id1].historialTransacciones[j].identificador_usuario2=s[i].id1))
     }
-
+                                                                                                        
 }
