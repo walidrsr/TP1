@@ -36,6 +36,9 @@ TAD AirMiles {
     obs promociones: dicc <nombrePromocion,promocion>
     }
 
+    pred estaRegistrado(d:dicc<id,usuario>,id_usuario:Z) {id_usuario pertenece d }
+
+
     crearSistema(): AirMiles // 
         requiere: {true}
         asegura: {res.usuarios = {}}
@@ -51,7 +54,7 @@ TAD AirMiles {
         asegura:  {a.promociones = a0.promociones}       // (totales,disp,canjeadas,histvuelos,histTransacc)                                                                                  
 
 
-    //faltaArreglarCategoría  /->L ó /<->
+    //faltaArreglarCategoría  /->L ó /<-> /noHAceFaltaPonerLaCategoriaEnformaDeStrignSInoDEFORMA:a0.usuarios[referidor].millasTotales>=1.000.000 (Esto ya garantiza que es platino no?)
     regristrarUsuarioConReferidor(inout a: AirMiles, in nuevo_usuario: Z, in referidor: Z)
         requiere: {a0 = a, a1 = a}
         requiere: {(not estaRegistrado(a.usuarios, nuevo_usuario) and estaRegistrado(a.usuarios, referidor))}
