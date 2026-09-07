@@ -170,7 +170,7 @@ TAD AirMiles {
     }
 
     pred NoHayTuplasRepetidas(s:seq<struct(id1:Z,id2:Z)>){
-        (vi:z)(0<=i<|s| ->luego not (Existe j:z)(0<=j<|s| yluego (i.id1=j.id1 o i.id1=j.id2p i.id2=j.id1 o i.id2=j.id2 ) )
+        (vi:z)(0<=i<|s| ->luego not (Existe j:z)(0<=j<|s| yluego (i.id1=j.id1 o i.id1=j.id2 o i.id2=j.id1 o i.id2=j.id2 ) )
 
         //noSe //siAgregarAlgoMAs
     }
