@@ -101,12 +101,14 @@ TAD AirMiles {
         requiere: {estaRegistrado(a.usuarios, Z)}
         asegura: {res = a.usuarios[id_usuario].millasDisponibles}
 
+    ¿¿¿¿<->???
     consultarCategoria (in a: AirMiles, in id_usuario: Z): Categoria
         requiere: {estaRegistrado(a.usuarios, id_usuario)}
         asegura: {esBronce(a.usuarios[id_usuario].millasTotales) -> res = Categoria.Bronce}
         asegura: {esPlata(a.usuarios[id_usuario].millasTotales) -> res = Categoria.Plata}
         asegura: {esOro(a.usuarios[id_usuario].millasTotales) -> res = Categoria.Oro} 
         asegura: {esPlatino(a.usuarios[id_usuario].millasTotales) -> res = Categoria.Platino}
+
 
     pred esBronce(millas: Z) {millas < 10000}
     pred esPlata(millas: Z) {millas >= 10000 and millas <= 49999}
