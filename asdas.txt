@@ -32,11 +32,6 @@ TAD AirMiles {
     >
 
 
-    obs categoria: dicc <Categoria.Bronce: 1, Categoria.Plata: 3/2, Categoria.Oro: 2, Categoria.Platino: 0> // ¿es necesario poner los tipos de los factores? 
-        // el observador de categoria es redudante debido a que en cada proc es necesario actualizar la categoria del usuario
-        // no hace falta poner un observador categoria, con el enum es suficiente
-
-
     obs usuarios: dicc <Id,usuario>
     obs promociones: dicc <nombrePromocion,promocion>
     }
@@ -97,9 +92,6 @@ TAD AirMiles {
         asegura: {a = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>)) y luego a1 = a}
         //asegura: {a = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>))}
         asegura: {a.promociones = a0.promociones} 
-
-
-
 
     //listo
     consultarSaldo(in a: AirMiles, in id_usuario: Z): R
