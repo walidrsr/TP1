@@ -7,8 +7,8 @@ TAD AirMiles {
 
     promocion ES struct<
         factor: R
-        tope: R --0 indica que no tiene tope
-        gastadas: R
+        tope: R --0 indica que no tiene tope 
+        gastadas: R   
     >
 
     vuelo ES struct <
@@ -40,6 +40,7 @@ TAD AirMiles {
     pred estaRegistrado(d:dicc<id,usuario>,id_usuario:Z) {id_usuario pertenece d }
     aux factorCategoria(u:usuario): R = ifThenElse(u.millasTotales<10000, 1 ,ifThenElse(u.millasTotales <50000, 3/2 ,ifThenElse(u.millasTotales<1000000, 2 ,0)))
 
+
     crearSistema(): AirMiles // 
         requiere: {true}
         asegura: {res.usuarios = {}}
@@ -60,23 +61,22 @@ TAD AirMiles {
         requiere: {a0 = a, a1 = a} // Pondria a0=a, a1=a0
         requiere: {(not estaRegistrado(a.usuarios, nuevo_usuario) and estaRegistrado(a.usuarios, referidor))}
         requiere: {nuevo_usuario > 0}     
-        asegura:  { a0.usuarios[referidor].millasTotales>=1000000         ->L a.usuarios = setKey(a0.usuarios, referidor, (a0.usuario[referidor].millasTotales, a0.usuario[referidor].millasDisponibles + 500, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].historialTransacciones))  y luego a1 = a}
-        asegura:  { a0.usuarios[referidor].millasTotales<1000000      ->L a.usuarios = setKey(a0.usuarios, referidor, (a0.usuario[referidor].millasTotales + 500, a0.usuario[referidor].millasDisponibles + 500, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].historialTransacciones)) y luego a1 = a}
+        asegura:  { esPlatino(a0.usuarios[referidor].millasTotales )        ->L a.usuarios = setKey(a0.usuarios, referidor, (a0.usuario[referidor].millasTotales, a0.usuario[referidor].millasDisponibles + 500, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].historialTransacciones))  y luego a1 = a}
+        asegura:  { not esPlatino(a0.usuarios[referidor].millasTotales)     ->L a.usuarios = setKey(a0.usuarios, referidor, (a0.usuario[referidor].millasTotales + 500, a0.usuario[referidor].millasDisponibles + 500, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].historialTransacciones)) y luego a1 = a}
         asegura:  {a.usuario = setKey(a0.usuario,nuevo_usuario,(500,500,0,<>,<>))}
         asegura:  {a.promociones = a0.promociones}   
 
 
-    acumularMillas(inout a: AirMiles, in id_usuario: Z, in distancia: R, in nombrePromo: String) //ver //quePasa //conLosUsuariosQueEstanEnPlatino!
+    acumularMillas(inout a: AirMiles, in id_usuario: Z, in distancia: R, in nombrePromo: String)
         requiere: {a0 = a}
         requiere: {estaRegistrado(a.usuarios, id_usuario)}
         requiere: {distancia > 0}
-        requiere: {nombrePromo in claves(a0.promociones)}
-        requiere : {(a0.promociones[nombrePromo].tope > 0 ->L millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo)  < a0.promociones[nombrePromo].tope)} // aca chequeo que no se pase del tope cuando es != NoPromo
-        //arreglar asegura: {a.usuarios = setKey(a0.usuarios, id_usuario, (usuario.millasDisponibles + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo),usuario.millasTotales + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo),usuario.historialVuelos ++ <(distancia, id_usuario, millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo))>, nombrePromo, a0.promociones[nombrePromo].factor))}
+        requiere: {nombrePromo in claves(a0.promociones)} 
+        requiere : {(a0.promociones[nombrePromo].tope > 0 ->L (millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo) + a0.promociones[nombrePromo].gastadas)  < a0.promociones[nombrePromo].tope)} 
+        asegura : {a.usuario=setKey(a0.usuario,id_usuario,(a0.usuario[id_usuario].millasTotales , a0.usuario[id_usuario].millasDisponibles + millasGanadasEnVuelo(a0,id_usuario,distancia,nombrePromo) , a0.usuarios[id_usuario].millasCanjeadas, a0.usuarios[id_usuario].historialVuelos ++ <(distancia,millasGanadasEnVuelo(a0,id_usuario,distancia,nombrePromo),nombrePromo,a0.promociones[nombrePromo].factor)>, a0.usuarios[id_usuario].historial_transacciones))}
         asegura: {a.promociones = ifThenElse(a0.promociones.tope = a0.promociones.gastadas + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo), delKey(a0.promociones,nombrePromo), a.promociones = setKey(a0.promociones, nombrePromo, gastadas + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo)))}
-    
-    //faltaArreglarCategoría
-    // aux millasGanadasEnVuelo(a: AirMiles, id: Z, distancia: R, nombrePromo: String): R = factorCategoria(a.usuario[Id]) * distancia * a.promociones[nombrePromo].factor
+
+    aux millasGanadasEnVuelo(a: AirMiles, id: Z, distancia: R, nombrePromo: String): R = factorCategoria(a.usuario[Id]) * distancia * a.promociones[nombrePromo].factor
 
     //listo
     canjearMillas(inout a: AirMiles, in id_usuario: Z, in millas: R): // chequear si está bien
@@ -130,7 +130,6 @@ TAD AirMiles {
     aux millasTransferidasGeneral(in t seq<transaccion>): R = sumatoria de i = 0 hasta i = |t|-1 de t[i].monto
     aux totalMillasPorViaje(in v seq<vuelos>): R = sumatoria de i = 0 hasta i = |v|-1 de v[i].millasGanadas
 
-
     iniciarPromocion(inout a: AirMiles, in nombre: String, in factor: R):
         requiere: {a0 = a}
         requiere: {factor >= 1}
@@ -155,6 +154,7 @@ TAD AirMiles {
     elQueTieneMasMillas(in a: AirMiles): Id
         requiere: {|a.usuarios| > 0}
         asegura:  {(para toda key de tipo id), key in claves(a.usuarios) ->luego a.usuarios[res].millasTotales >= a.usuarios[key].millasTotales}
+        asegura :    { no existe otro usuario que tenga mas millas que res ??}
 
     elMasCanjeador(in a: AirMiles): Id
         requiere: {|a.usuarios| > 0}
@@ -162,11 +162,12 @@ TAD AirMiles {
 
     aux cantidadMillasDadas(in transferencias: seq<transaccion>) : R = -1* (sumatoria de i = 0 hasta i = |v|-1 ifThenElse(transferencias[i].monto > 0,0,transferencias[i].monto))
     
-    
 
     paresTransferidoresExclusivos(in a: AirMiles): seq<tuple(Id,Id)>
         requiere: {true}
         asegura: {NoHayTuplasRepetidas(res) y transferenciasExclusivas(a.usuarios,res) y estaRegistrado(a.usuarios,res) }
+    
+
     
     pred estaRegistrado (usuario: dicc <Id,usuario> , ids:seq<struct(id1:Z,id2:Z)>): {
         (v i : z)(0<=i|ids| ->l  estaRegistrado(usuario, ids[i].id1) y estaRegistrado(usuario,ids[i].id2) )
@@ -175,7 +176,6 @@ TAD AirMiles {
     pred NoHayTuplasRepetidas(s:seq<struct(id1:Z,id2:Z)>){
         (vi:z)(0<=i<|s| ->luego not (Existe j:z)(0<=j<|s| y j/=i ->L (i.id1=j.id1 o i.id1 = j.id2 Y i.id2=j.id1 o i.id2=j.id2) )
 
-        //noSe //siAgregarAlgoMAs
     }
 
     pred transferenciasExclusivas(usuario: dicc <Id,usuario>, s: seq<struct(id1:Z,id2:Z)>){
