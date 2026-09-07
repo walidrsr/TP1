@@ -51,7 +51,7 @@ TAD AirMiles {
         asegura:  {a.promociones = a0.promociones}       // (totales,disp,canjeadas,histvuelos,histTransacc)                                                                                  
 
 
-    //faltaArreglarCategoría
+    //faltaArreglarCategoría  /->L ó /<->
     regristrarUsuarioConReferidor(inout a: AirMiles, in nuevo_usuario: Z, in referidor: Z)
         requiere: {a0 = a, a1 = a}
         requiere: {(not estaRegistrado(a.usuarios, nuevo_usuario) and estaRegistrado(a.usuarios, referidor))}
@@ -170,7 +170,7 @@ TAD AirMiles {
     }
 
     pred NoHayTuplasRepetidas(s:seq<struct(id1:Z,id2:Z)>){
-        (vi:z)(0<=i<|s| ->luego not (Existe j:z)(0<=j<|s| yluego (i.id1=j.id1 o i.id1=j.id2 o i.id2=j.id1 o i.id2=j.id2 ) )
+        (vi:z)(0<=i<|s| ->luego not (Existe j:z)(0<=j<|s| y j/=i ->L (i.id1=j.id1 o i.id1 = j.id2 Y i.id2=j.id1 o i.id2=j.id2) )
 
         //noSe //siAgregarAlgoMAs
     }
