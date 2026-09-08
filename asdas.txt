@@ -61,10 +61,10 @@ TAD AirMiles {
         requiere: {a0 = a, a1 = a} // Pondria a0=a, a1=a0
         requiere: {(not estaRegistrado(a.usuarios, nuevo_usuario) and estaRegistrado(a.usuarios, referidor))}
         requiere: {nuevo_usuario > 0}     
-        asegura:  { esPlatino(a0.usuarios[referidor].millasTotales )        ->L a.usuarios = setKey(a0.usuarios, referidor, (a0.usuario[referidor].millasTotales, a0.usuario[referidor].millasDisponibles + 500, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].historialTransacciones))  y luego a1 = a}
-        asegura:  { not esPlatino(a0.usuarios[referidor].millasTotales)     ->L a.usuarios = setKey(a0.usuarios, referidor, (a0.usuario[referidor].millasTotales + 500, a0.usuario[referidor].millasDisponibles + 500, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].historialTransacciones)) y luego a1 = a}
-        asegura:  {a.usuario = setKey(a0.usuario,nuevo_usuario,(500,500,0,<>,<>))}
-        asegura:  {a.promociones = a0.promociones}   
+        asegura:  { esPlatino(a0.usuarios[referidor].millasTotales )        ->L a1.usuarios = setKey(a0.usuarios, referidor, (a0.usuario[referidor].millasTotales, a0.usuario[referidor].millasDisponibles + 500, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].historialTransacciones))} //en vez de poner YL a1, directamente modificamos a1 usando el set key
+        asegura:  { not esPlatino(a0.usuarios[referidor].millasTotales)     ->L a1.usuarios = setKey(a0.usuarios, referidor, (a0.usuario[referidor].millasTotales + 500, a0.usuario[referidor].millasDisponibles + 500, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].historialTransacciones))}
+        asegura:  {a.usuario = setKey(a1.usuario,nuevo_usuario,(500,500,0,<>,<>))}  //como en cualquiera de los casos modificamos a1, aca va a1, no a0
+        asegura:  {a.promociones = a0.promociones}   //aca da igual porque ni tocamos promociones 
 
 
     acumularMillas(inout a: AirMiles, in id_usuario: Z, in distancia: R, in nombrePromo: String)
@@ -92,8 +92,8 @@ TAD AirMiles {
         requiere: {Da != Recibe}
         requiere: {estaRegistrado(a.usuarios, Da) and estaRegistrado(a.usuarios, Recibe)}
         requiere {a0.usuarios[Da].millasDisponibles >= millas}
-        asegura: {a = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>)) y luego a1 = a}
-        //asegura: {a = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>))}
+        asegura: {a1.usuarios = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>))}
+        //asegura: {a.usuarios = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>))} //en los ultimos 2 asegura estabamos igualando a a un diccionario, cuando a es el tad entero. Complete con a1.usuarios y a.usuarios respectivamente.
         asegura: {a.promociones = a0.promociones} 
 
     //listo
