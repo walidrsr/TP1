@@ -67,6 +67,7 @@ TAD AirMiles {
         asegura:  {a.promociones = a0.promociones}   //aca da igual porque ni tocamos promociones    
 
 
+
     acumularMillas(inout a: AirMiles, in id_usuario: Z, in distancia: R, in nombrePromo: String)
         requiere: {a0 = a}
         requiere: {estaRegistrado(a.usuarios, id_usuario)}
@@ -92,8 +93,8 @@ TAD AirMiles {
         requiere: {Da != Recibe}
         requiere: {estaRegistrado(a.usuarios, Da) and estaRegistrado(a.usuarios, Recibe)}
         requiere {a0.usuarios[Da].millasDisponibles >= millas}
-        asegura: {a = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>)) y luego a1 = a}
-        //asegura: {a = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>))}
+        asegura: {a1.usuarios = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>))}
+        //asegura: {a.usuarios = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>))} //en los ultimos 2 asegura estabamos igualando a a un diccionario, cuando a es el tad entero. Complete con a1.usuarios y a.usuarios respectivamente.
         asegura: {a.promociones = a0.promociones} 
 
     //listo
