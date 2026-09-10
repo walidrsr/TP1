@@ -1,35 +1,34 @@
 
-    Categoria ES enum {Bronce, Plata, Oro, Platino}  //CreoQueNoHaceFAlta
-    Id ES Z
-    nombrePromocion ES String
-    promocion ES struct<
-        factor: R
-        tope: R --0 indica que no tiene tope 
-        gastadas: R   
+Categoria ES enum {Bronce, Plata, Oro, Platino} 
+Id ES Z
+nombrePromocion ES String
+promocion ES struct<
+    factor: R
+    tope: R --0 indica que no tiene tope 
+    gastadas: R   
     >
 
-    vuelo ES struct <
-        distancia: R
-        millasGanadas: R 
-        promocion: String 
-        factor: R
+vuelo ES struct <
+    distancia: R
+    millasGanadas: R 
+    promocion: String 
+    factor: R
     >
 
-    transaccion ES struct<
-        identificador_usuario2:Z 
-        monto: Z
+transaccion ES struct<
+    identificador_usuario2:Z 
+    monto: Z
     >
     
-    usuario ES struct <
-        millasTotales: R
-        millasDisponibles: R
-        millasCanjeadas: R 
-        historialVuelos: seq<vuelo>
-        historialTransacciones: seq <transaccion>
+usuario ES struct <
+     millasTotales: R
+    millasDisponibles: R
+    millasCanjeadas: R 
+    historialVuelos: seq<vuelo>
+    historialTransacciones: seq <transaccion>
     >
 
-
-TAD AirMiles {
+    TAD AirMiles {
 
     obs usuarios: dicc <Id,usuario>
     obs promociones: dicc <nombrePromocion,promocion>
@@ -136,9 +135,9 @@ TAD AirMiles {
     transferirMillas(inout a: AirMiles, in id_Da: Z, in id_Recibe: Z, in millas: R): 
         requiere: {a0 = a}
         requiere: {Da != Recibe}
-        requiere: {estaRegistrado(a.usuarios, Da) and estaRegistrado(a.usuarios, Recibe)}
+        requiere: {estaRegistrado(a.usuarios, Da) and estaRegistrado(a.usuarios,millas, Recibe)}
         requiere {a.usuarios[Da].millasDisponibles >= millas}
-        asegura: {a.usuarios = setKey(setKey(a0.usuarios, Da, actualizarAcumularMillasDa(a0.usuarios[id_Da],millas,id_Recibe)),Recibe,actualizarMillasTransferidasRecibe(a.usuarios[id_Recibe]))
+        asegura: {a.usuarios = setKey(setKey(a0.usuarios, Da, actualizarAcumularMillasDa(a0.usuarios[id_Da],millas,id_Recibe)),Recibe,actualizarMillasTransferidasRecibe(a.usuarios[id_Recibe],millas,id_Da))
       
 
     //listo
@@ -146,7 +145,8 @@ TAD AirMiles {
         requiere: {estaRegistrado(a.usuarios, Z)}
         asegura: {res = a.usuarios[id_usuario].millasDisponibles}
 
-    ¿¿¿¿<->???
+    
+    //listo
     consultarCategoria (in a: AirMiles, in id_usuario: Z): Categoria
         requiere: {estaRegistrado(a.usuarios, id_usuario)}
         asegura: {esBronce(a.usuarios[id_usuario].millasTotales) <-> res = Categoria.Bronce}
@@ -165,7 +165,7 @@ TAD AirMiles {
         requiere: {cant_ids > 0}
         asegura: {ifThenElse(Z > |a.usuarios|, |res| = |a.usuarios|, |res| = cant_ids) y PerteneceSeq(res,claves(a.usuario)) }
         asegura: {para todo 0 <= i < |res|-1 ->luego a.usuarios[res[i]].millasDisponibles >= a.usuarios[res[i+1]].millasDisponibles}
-        asegura: {(para todo i : Id) i E a.usuarios Y i !E res ->L res[|res|-1] > a.usuarios[i](esto es un struct)} //se fija que sean los mejores
+        asegura: {(para todo i : Id) i E a.usuarios Y i !E res ->L res[|res|-1] > a.usuarios[i]  ---> !!!!!!!! STRUCT NO ES ID> STRUC????} //se fija que sean los mejores
 
 
     pred PerteneceSeq(s: seq<Id>, keys: seq<Id>) {para todo 0 <= i < |s| ->luego s[i] E keys} // E = Pertenece
@@ -204,18 +204,13 @@ TAD AirMiles {
         asegura :    { no existe otro usuario que tenga mas millas que res ??}
 
     
-    ///ver
-    elMasCanjeador(in a: AirMiles): Id
-        requiere: {|a.usuarios| > 0}
-        asegura: {(para toda key de tipo id), key in claves(a.usuarios) ->luego (a.usuarios[res].millasCanjeadas + cantidadMillasDadas(a.usuarios[res].historial_transacciones)) >= (a.usuarios[key].millasCanjeadas + cantidadMillasDadas(a.usuarios[key].historial_transacciones))}
-
-    //ver
-    elMasCanjeador(in a: AirMiles): Id
-        requiere: {|a.usuarios| > 0}
-        asegura: {para toda key in claves(a.usuarios) ->luego (a.usuarios[res].millasTotales - a.usuarios[res].millasDisponibles) >= (a.usuarios[key].millasTotales - a.usuarios[key].millasDisponibles)}
-
-
+    
     aux cantidadMillasDadas(in transferencias: seq<transaccion>) : R = -1* (sumatoria de i = 0 hasta i = |v|-1 ifThenElse(transferencias[i].monto > 0,0,transferencias[i].monto))
+    aux millasCanjeadasMillasTransferidas(a:AirMiles,id:Z) : R = a.usuarios[id] + cantidadMillasDadas(a.usuarios[id].historialTransacciones)
+    
+    elMasCanjeador(in a: AirMiles): Id
+        requiere: {|a.usuarios| > 0}
+        asegura: {(para toda key de tipo id), key in claves(a.usuarios) ->luego (millasCanjeadasMillasTransferidas(a,id)) >= (millasCanjeadasMillasTransferidas(a,key))}
     
     paresTransferidoresExclusivos(in a: AirMiles): seq<struct(Id:Z,Id:Z)>
         requiere: {true}
@@ -230,5 +225,7 @@ TAD AirMiles {
         Y
         para toda tupla in s -> (para toda transaccion in a.usuarios[id2].historial_transacciones -> transaccion.identificador_usuario2 = id1)
     }
-}
+}}
+
+
 
