@@ -206,11 +206,11 @@ usuario ES struct <
     
     
     aux cantidadMillasDadas(in transferencias: seq<transaccion>) : R = -1* (sumatoria de i = 0 hasta i = |v|-1 ifThenElse(transferencias[i].monto > 0,0,transferencias[i].monto))
-    aux millasCanjeadasMillasTransferidas(a:AirMiles,id:Z) : R = a.usuarios[id] + cantidadMillasDadas(a.usuarios[id].historialTransacciones)
+    aux millasCanjeadasMillasTransferidas(a:AirMiles,id:Z) : R = a.usuarios[id].millasCanjeadas + cantidadMillasDadas(a.usuarios[id].historialTransacciones)
     
     elMasCanjeador(in a: AirMiles): Id
         requiere: {|a.usuarios| > 0}
-        asegura: {(para toda key de tipo id), key in claves(a.usuarios) ->luego (millasCanjeadasMillasTransferidas(a,id)) >= (millasCanjeadasMillasTransferidas(a,key))}
+        asegura: {(para toda key de tipo id), key in claves(a.usuarios) ->luego (millasCanjeadasMillasTransferidas(a,res)) >= (millasCanjeadasMillasTransferidas(a,key))}
     
     paresTransferidoresExclusivos(in a: AirMiles): seq<struct(Id:Z,Id:Z)>
         requiere: {true}
