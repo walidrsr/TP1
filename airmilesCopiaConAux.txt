@@ -1,4 +1,3 @@
-TAD AirMiles {
 
     Categoria ES enum {Bronce, Plata, Oro, Platino}  //CreoQueNoHaceFAlta
     Id ES Z
@@ -29,8 +28,8 @@ TAD AirMiles {
         historialTransacciones: seq <transaccion>
     >
 
-    
 
+TAD AirMiles {
 
     obs usuarios: dicc <Id,usuario>
     obs promociones: dicc <nombrePromocion,promocion>
@@ -39,62 +38,108 @@ TAD AirMiles {
     pred estaRegistrado(d:dicc<id,usuario>,id_usuario:Z) {id_usuario pertenece d }
     aux factorCategoria(u:usuario): R = ifThenElse(u.millasTotales<10000, 1 ,ifThenElse(u.millasTotales <50000, 3/2 ,ifThenElse(u.millasTotales<1000000, 2 ,0)))
 
+    aux nuevoUsuario(): usuario = (millasTotales: 0 , u.millasDisponibles : 0, u.millasCanjeadas: 0,historialVuelos: <>, historialTransacciones: <>)
 
     crearSistema(): AirMiles // 
         requiere: {true}
         asegura: {res.usuarios = {}}
-        asegura: {res.promociones = setKey({},'NoPromo', (1,0,0) )} // (factor, tope, gastadas)
+        asegura: {res.promociones = setKey({},'NoPromo', (factor:1,tope:0,gastadas:0) )} 
         
 
     //listo
-    registrarUsuario(inout a: AirMiles, in id_usuario: Z): // noo, solo en este proc y en el regristrarUsuarioConReferidor
+    registrarUsuario(inout a: AirMiles, in id_usuario: Z):
         requiere: {a0 = a}
         requiere: {not estaRegistrado(a.usuarios, id_usuario)}
         requiere: {id_usuario > 0} 
-        asegura:  {a.usuarios = setKey (a0.usuarios, id_usuario,(0,0,0,<>,<>))  }   
-        asegura:  {a.promociones = a0.promociones}       // (totales,disp,canjeadas,histvuelos,histTransacc)                                                                                  
+        asegura:  {a.usuarios = setKey (a0.usuarios, id_usuario, nuevo_usuario())  }   
+        asegura:  {a.promociones = a0.promociones}                                                                                      
 
 
-   
+
+    aux bonoReferidor (u:usuario) : R =ifThenElse(esPlatino(u),0.0,500.0)
+    
+    aux actualizarReferidor (u:usuario) :usuario =  (
+        millasTotales : u.millasTotales + bonoReferidor(u)
+        millasDisponibles : u.millasDisponibles + bonoReferidor(u)
+        millasCanjeadas : u.millasCanjeadas
+        historialVuelos : u.historialVuelos
+        historialTransacciones : u.historialTransacciones
+    )
+
+    aux nuevoUsuarioReferido(): usuario = (millasTotales: 500 , millasDisponibles : 500, millasCanjeadas: 0, historialVuelos: <>, historialTransacciones: <>)
+
+
     registrarUsuarioConReferidor(inout a: AirMiles, in nuevo_usuario: Z, in id_referidor: Z)
         requiere: {a0 = a} 
         requiere: {(not estaRegistrado(a.usuarios, nuevo_usuario) and estaRegistrado(a.usuarios, referidor))}
         requiere: {nuevo_usuario > 0}     
-        asegura:  { esPlatino(a0.usuarios[referidor].millasTotales )        ->L a.usuarios = setKey(setKey(a0.usuarios, id_referidor, (a0.usuario[id\_referidor].millasTotales, a0.usuario[id_referidor].millasDisponibles + 500, a0.usuario[id_referidor].historialVuelos, a0.usuario[id_referidor].historialTransacciones),nuevo_usuario,(500,500,0,<>,<>)))} 
-        asegura:  { not esPlatino(a0.usuarios[referidor].millasTotales)     ->L a.usuarios = setKey(setKey(a0.usuarios, id\_referidor, (a0.usuario[id\_referidor].millasTotales  + 500, a0.usuario[id\_referidor].millasDisponibles + 500, a0.usuario[id\_referidor].historialVuelos, a0.usuario[id_referidor].historialTransacciones),nuevo_usuario,(500,500,0,<>,<>)))}
-        asegura:  {a.usuario = setKey(a1.usuario,nuevo_usuario,(500,500,0,<>,<>))}  //como en cualquiera de los casos modificamos a1, aca va a1, no a0
-        asegura:  {a.promociones = a0.promociones}   //aca da igual porque ni tocamos promociones    
+        asegura:  {a.usuarios = setKey(setKey(a0.usuarios, id_referidor, actualizarReferidor(a0.usuarios[id_referidor])) ,nuevo_usuario,nuevoUsuarioReferido())} 
+        asegura:  {a.promociones = a0.promociones}   
 
 
+
+    aux millasGanadasEnVuelo(u:usuario, distancia: R, p: promocion): R = factorCategoria(u) * distancia * p.factor
+    aux actualizarAcumularMillas(u:usuario, distancia: R, p: promocion, nombrePromo:String): usuario (
+        millasTotales: u.millasTotales + millasGanadasEnVuelo(u,distancia,p)
+        millasDisponibles: u.millasDisponibles + millasGanadasEnVuelo(u,distancia,p)
+        millasCanjeadas : u.millasCanjeadas
+        historialVuelos : u.historialVuelos ++ <(distancia,millasGanadasEnVuelo(u,distancia,p),nombrePromo,p.factor)>
+        historialTransacciones: u.historialTransacciones
+    )
 
     acumularMillas(inout a: AirMiles, in id_usuario: Z, in distancia: R, in nombrePromo: String)
         requiere: {a0 = a}
         requiere: {estaRegistrado(a.usuarios, id_usuario)}
         requiere: {distancia > 0}
         requiere: {nombrePromo in claves(a0.promociones)} 
-        requiere : {(a0.promociones[nombrePromo].tope > 0 ->L (millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo) + a0.promociones[nombrePromo].gastadas)  < a0.promociones[nombrePromo].tope)} 
-        asegura : {a.usuario=setKey(a0.usuario,id_usuario,(a0.usuario[id_usuario].millasTotales , a0.usuario[id_usuario].millasDisponibles + millasGanadasEnVuelo(a0,id_usuario,distancia,nombrePromo) , a0.usuarios[id_usuario].millasCanjeadas, a0.usuarios[id_usuario].historialVuelos ++ <(distancia,millasGanadasEnVuelo(a0,id_usuario,distancia,nombrePromo),nombrePromo,a0.promociones[nombrePromo].factor)>, a0.usuarios[id_usuario].historial_transacciones))}
-        asegura: {ifThenElse(a0.promociones.tope = a0.promociones.gastadas + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo), a.promociones = delKey(a0.promociones,nombrePromo), a.promociones = setKey(a0.promociones, nombrePromo, gastadas + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo)))} //ver a0.promociones= :::
+        requiere : {(a0.promociones[nombrePromo].tope >= 0  Y (millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo) + a0.promociones[nombrePromo].gastadas)  =< a0.promociones[nombrePromo].tope)} 
+        
+        asegura : {a.usuario=setKey(a0.usuario, id_usuario, actualizarAcumularMillas(a0.usuario[id_usuario],distancia,a0.promocion[nombrePromo],nombrePromo))}
+        asegura: {ifThenElse(a0.promociones.tope = a0.promociones.gastadas + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo), // que pasa si tope ->  0(no tiene tope) = 0(no tiene gastadas) + 0 (esPlatino) 
+                a.promociones = delKey(a0.promociones,nombrePromo),     
+                a.promociones = setKey(a0.promociones, nombrePromo, gastadas + millasGanadasEnVuelo(a0, id_usuario, distancia, nombrePromo))
+            )} 
 
-    aux millasGanadasEnVuelo(a: AirMiles, id: Z, distancia: R, nombrePromo: String): R = factorCategoria(a.usuario[Id]) * distancia * a.promociones[nombrePromo].factor
+    aux actualizarMillasCanjeadas (u:usuarios,millas:R) : usuario (
+        millasTotales: u.millasTotales
+        millasDisponibles : u.millasDisponibles - millas
+        millasCanjeadas : u.millasCanjeadas + millas
+        historialVuelos:u.historialVuelos
+        historialTransacciones: u.historialTransacciones
+    )
 
     //listo
     canjearMillas(inout a: AirMiles, in id_usuario: Z, in millas: R): // chequear si está bien
         requiere: {a0 = a}
         requiere: {estaRegistrado(a.usuarios, id_usuario)}
         requiere: {a.usuarios[id_usuario].millasDisponibles >= millas}
-        asegura:  {a.usuarios = setKey(a0.usuarios, id_usuario, (a0.usuario[id_usuario].totales, a0.usuario[id_usuario].millasDisponibles - millas, a0.usuario[id_usuario].millasCanjeadas + millas, a0.usuario[referidor].historialVuelos,a0.usuario[referidor].historialTransacciones))}
+        asegura:  {a.usuarios = setKey(a0.usuarios, id_usuario,actualizarMillasCanjeadas(a0.usuarios[id_usuario],millas))}
         asegura:  {a.promociones = a0.promociones} 
 
-    //categoria,metavariable en asegura?
-    transferirMillas(inout a: AirMiles, in Da: Z, in Recibe: Z, in millas: R): // chequear si está bien
-        requiere: {a0 = a, a1 = a}
+
+    aux actualizarAcumularMillasDa (u:usuario,millas:R,id_Recibe:z) : usuario=(
+        millasTotales: u.millasTotales
+        millasDisponibles: u.millasDisponibles - millas 
+        millasCanjeadas: u.millasCanjeadas
+        historialVuelos: u.historialVuelos
+        historialTransacciones : u.historialTransacciones ++ <(id_Recibe,millas * -1)>
+    )
+
+    aux actualizarAcumularMillasRecibe (u:usuario,millas:R,id_Da:z) : usuario=(
+        millasTotales: u.millasTotales
+        millasDisponibles: u.millasDisponibles + millas 
+        millasCanjeadas: u.millasCanjeadas
+        historialVuelos: u.historialVuelos
+        historialTransacciones : u.historialTransacciones ++ <(id_Da,millas)>
+    )
+
+    transferirMillas(inout a: AirMiles, in id_Da: Z, in id_Recibe: Z, in millas: R): 
+        requiere: {a0 = a}
         requiere: {Da != Recibe}
         requiere: {estaRegistrado(a.usuarios, Da) and estaRegistrado(a.usuarios, Recibe)}
-        requiere {a0.usuarios[Da].millasDisponibles >= millas}
-        asegura: {a1.usuarios = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>))} //monto*-1 no es millas?
-      FALTA EL QUE Recibe  //asegura: {a.usuarios = setKey(a0.usuarios, Da, (a0.usuario[Da].totales, a0.usuario[Da].millasDisponibles - millas, a0.usuario[Da].millasCanjeadas, a0.usuario[Da].historialVuelos, a0.usuario[Da].historial_transacciones ++ <(Recibe,monto*-1)>))} //en los ultimos 2 asegura estabamos igualando a a un diccionario, cuando a es el tad entero. Complete con a1.usuarios y a.usuarios respectivamente.
-        asegura: {a.promociones = a0.promociones} 
+        requiere {a.usuarios[Da].millasDisponibles >= millas}
+        asegura: {a.usuarios = setKey(setKey(a0.usuarios, Da, actualizarAcumularMillasDa(a0.usuarios[id_Da],millas,id_Recibe)),Recibe,actualizarMillasTransferidasRecibe(a.usuarios[id_Recibe]))
+      
 
     //listo
     consultarSaldo(in a: AirMiles, in id_usuario: Z): R
